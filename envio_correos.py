@@ -14,7 +14,7 @@ def enviar_correos():
     cantidad_str = entry_cantidad.get().strip()
     mensaje_html = text_mensaje.get("1.0", tk.END).strip()
 
-    # Validaciones básicas
+    # Validaciones basicas
     if not correo_origen or not contrasena or not correo_destino or not cantidad_str or not mensaje_html:
         messagebox.showwarning("Campos incompletos", "Por favor completa todos los campos.")
         return
@@ -24,7 +24,7 @@ def enviar_correos():
         if cantidad <= 0:
             raise ValueError
     except ValueError:
-        messagebox.showerror("Error", "El número de correos debe ser un entero positivo.")
+        messagebox.showerror("Error", "El numero de correos debe ser un entero positivo.")
         return
 
     btn_enviar.config(state=tk.DISABLED)
@@ -40,30 +40,38 @@ def enviar_correos():
                 for i in range(1, cantidad + 1):
                     try:
                         msg = MIMEMultipart("alternative")
-                        msg["Subject"] = f"Correo automático #{i}"
+                        # Codificar Subject manualmente para soportar caracteres no-ASCII
+                        from email.header import Header
+                        msg["Subject"] = Header(f"Correo automatico #{i}", "utf-8").encode()
                         msg["From"] = correo_origen
                         msg["To"] = correo_destino
 
-                        parte_html = MIMEText(mensaje_html, "html")
+                        # MIMEText con charset utf-8 explicito
+                        parte_html = MIMEText(mensaje_html, "html", "utf-8")
                         msg.attach(parte_html)
 
-                        servidor.sendmail(correo_origen, correo_destino, msg.as_string())
+                        # Usar sendmail con msg.as_bytes() en lugar de as_string()
+                        servidor.sendmail(
+                            correo_origen,
+                            correo_destino,
+                            msg.as_bytes()
+                        )
                         root.after(0, lambda n=i: progress_label.config(
                             text=f"Enviado {n} de {cantidad}"))
                     except Exception as e:
                         errores += 1
                         root.after(0, lambda err=str(e): progress_label.config(
-                            text=f"Error en envío: {err}"))
+                            text=f"Error en envio: {err}"))
         except smtplib.SMTPAuthenticationError:
             root.after(0, lambda: messagebox.showerror(
-                "Autenticación fallida",
+                "Autenticacion fallida",
                 "Credenciales incorrectas. Usa una App Password de Google."))
         except Exception as e:
             root.after(0, lambda err=str(e): messagebox.showerror("Error SMTP", err))
         finally:
             if errores == 0:
                 root.after(0, lambda: messagebox.showinfo(
-                    "Completado", f"✅ Se enviaron {cantidad} correos correctamente."))
+                    "Completado", f"Se enviaron {cantidad} correos correctamente."))
             else:
                 root.after(0, lambda: messagebox.showwarning(
                     "Completado con errores",
@@ -75,9 +83,9 @@ def enviar_correos():
     hilo.start()
 
 
-# ─────────────────────────────────────────
+# -----------------------------------------
 # Interfaz Tkinter
-# ─────────────────────────────────────────
+# -----------------------------------------
 root = tk.Tk()
 root.title("EnvioCorreos - SMTP Gmail")
 root.resizable(False, False)
@@ -97,7 +105,7 @@ tk.Label(root, text="Correo destino:", font=fuente).grid(row=2, column=0, sticky
 entry_destino = tk.Entry(root, width=40, font=fuente)
 entry_destino.grid(row=2, column=1, pady=4)
 
-tk.Label(root, text="Número de correos:", font=fuente).grid(row=3, column=0, sticky="w", pady=4)
+tk.Label(root, text="Numero de correos:", font=fuente).grid(row=3, column=0, sticky="w", pady=4)
 entry_cantidad = tk.Entry(root, width=10, font=fuente)
 entry_cantidad.grid(row=3, column=1, sticky="w", pady=4)
 
@@ -107,7 +115,7 @@ text_mensaje.grid(row=4, column=1, pady=4)
 text_mensaje.insert(tk.END, "<h1>Hola!</h1><p>Este es un correo de prueba.</p>")
 
 btn_enviar = tk.Button(
-    root, text="📤 Enviar", font=("Segoe UI", 11, "bold"),
+    root, text="Enviar", font=("Segoe UI", 11, "bold"),
     bg="#4CAF50", fg="white", padx=10, pady=6,
     command=enviar_correos
 )
